@@ -1,0 +1,59 @@
+1 Introduction
+This document describes the LoRaWAN network protocol which is optimized for battery-powered end-devices that may be either mobile or mounted at a fixed location.
+
+LoRaWAN networks typically are laid out in a star-of-stars topology in which gateways relay messages between end-devices and a central Network Server, the Network Server routes the packets from each device of the network to the associated Application Server.To secure radio transmissions the LoRaWAN protocol relies on symmetric cryptography using session keys derived from the device’s root keys. In the backend the storage of the device’s root keys and the associated key derivation operations are insured by a Join Server.
+
+This specification treats the Network Server, Application Server, and Join Server as if they are always co-located. Hosting these functionalities across multiple disjoint network nodes is outside the scope of this specification but is covered by [BACKEND].
+
+Gateways are connected to the Network Server via secured standard IP connections while end-devices use single-hop LoRa or FSK communication to one or many gateways.All communication is generally bi-directional, although uplink communication from an end-device to the Network Server is expected to be the predominant traffic.
+
+Communication between end-devices and gateways is spread out on different frequency channels and data rates. The selection of the data rate is a trade-off between communication range and message duration, communications with different data rates do not interfere with each other. LoRa data rates range from 0.3 kbps to 50 kbps. To maximize both battery life of the end-devices and overall network capacity, the LoRa network infrastructure can manage the data rate and RF output for each end-device individually by means of an adaptive data rate (ADR) scheme.
+
+End-devices may transmit on any channel available at any time, using any available data rate, as long as the following rules are respected:
+
+The end-device changes channel in a pseudo-random fashion for every transmission. The resulting frequency diversity makes the system more robust to interferences.
+The end-device respects the maximum transmit duty cycle relative to the sub-band used and local regulations.
+The end-device respects the maximum transmit duration (or dwell time) relative to the sub-band used and local regulations.
+
+Note: Maximum transmit duty-cycle and dwell time per sub-band are region specific and are defined in [PHY]
+
+1 Gateways are also known as concentrators or base stations.
+2 End-devices are also known as motes.
+3 Support for intermediate elements – repeaters – is not described in the document, however payload restrictions for encapsulation overhead are included in this specification. A repeater is defined as using LoRaWAN as its backhaul mechanism.
+
+
+1.1 LoRaWAN Classes
+All LoRaWAN devices MUST implement at least the Class A functionality as described in this document. In addition they MAY implement options named Class B or Class C as also described in this document or others to be defined. In all cases, they MUST remain compatible with Class A.
+
+
+1.2 Conventions
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
+MAC commands are written LinkCheckReq, bits and bit fields are written FRMPayload, constants are written RECEIVE_DELAY1, variables are written N.
+In this document,
+ The over-the-air octet order for all multi-octet fields is little endian
+ EUI are 8 bytes multi-octet fields and are transmitted as little endian.
+ By default, RFU bits SHALL be set to zero by the transmitter of the message and SHALL be ignored by the receiver
+
+
+2 Introduction on LoRaWAN options
+
+LoRa is a wireless modulation for long-range low-power low-data-rate applications developed by Semtech. Devices implementing more than Class A are generally named “higher Class end-devices” in this document.
+
+
+2.1 LoRaWAN Classes
+A LoRa network distinguishes between a basic LoRaWAN (named Class A) and optional features (Class B, Class C):
+
+Bi-directional end-devices (Class A): End-devices of Class A allow for bi-directional communications whereby each end-device’s uplink transmission is followed by two short downlink receive windows. The transmission slot scheduled by the end-device is based on its own communication needs with a small variation based on a random time basis (ALOHA-type of protocol). This Class A operation is the lowest power end-device system for applications that only require downlink communication from the server shortly after the end-device has sent an uplink transmission. Downlink communications from the server at any other time will have to wait until the next scheduled uplink.
+
+Bi-directional end-devices with scheduled receive slots (Class B): End-devices of Class B allow for more receive slots. In addition to the Class A random receive windows, Class B devices open extra receive windows at scheduled times. In order for the End-device to open its receive window at the scheduled time, it receives a time synchronized Beacon from the gateway.
+
+Bi-directional end-devices with maximal receive slots (Class C): End-devices of Class C have nearly continuously open receive windows, only closed when transmitting. Class C end-device will use more power to operate than Class A or Class B but they offer the lowest latency for server to end-device communication.
+
+
+
+
+
+
+
+
