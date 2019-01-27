@@ -51,6 +51,26 @@ Bi-directional end-devices with scheduled receive slots (Class B): End-devices o
 Bi-directional end-devices with maximal receive slots (Class C): End-devices of Class C have nearly continuously open receive windows, only closed when transmitting. Class C end-device will use more power to operate than Class A or Class B but they offer the lowest latency for server to end-device communication.
 
 
+3 Physical Message Formats
+
+The LoRa terminology distinguishes between uplink and downlink messages.
+3.1 Uplink Messages
+Uplink messages are sent by end-devices to the Network Server relayed by one or many gateways.
+
+Uplink messages use the LoRa radio packet explicit mode in which the LoRa physical header (PHDR) plus a header CRC (PHDR_CRC) are included. The integrity of the payload is protected by a CRC.
+
+The PHDR, PHDR_CRC and payload CRC fields are inserted by the radio transceiver.
+Uplink PHY:
+
+3.2 Downlink Messages
+Each downlink message is sent by the Network Server to only one end-device and is relayed by a single gateway.
+
+Downlink messages use the radio packet explicit mode in which the LoRa physical header(PHDR) and a header CRC (PHDR_CRC) are included.
+Downlink PHY:
+
+1 See the LoRa radio transceiver datasheet for a description of LoRa radio packet implicit/explicit modes.
+2 This specification does not describe the transmission of multicast messages from a network server to many end-devices.
+3 No payload integrity check is done at this level to keep messages as short as possible with minimum impact on any duty-cycle limitations of the ISM bands used.
 
 
 
