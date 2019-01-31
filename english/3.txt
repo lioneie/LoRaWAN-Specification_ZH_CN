@@ -1,0 +1,57 @@
+
+3 Physical Message Formats
+
+The LoRa terminology distinguishes between uplink and downlink messages.
+3.1 Uplink Messages
+Uplink messages are sent by end-devices to the Network Server relayed by one or many gateways.
+
+Uplink messages use the LoRa radio packet explicit mode in which the LoRa physical header (PHDR) plus a header CRC (PHDR_CRC) are included. The integrity of the payload is protected by a CRC.
+
+The PHDR, PHDR_CRC and payload CRC fields are inserted by the radio transceiver.
+Uplink PHY:
+
+3.2 Downlink Messages
+Each downlink message is sent by the Network Server to only one end-device and is relayed by a single gateway.
+
+Downlink messages use the radio packet explicit mode in which the LoRa physical header(PHDR) and a header CRC (PHDR_CRC) are included.
+Downlink PHY:
+
+1 See the LoRa radio transceiver datasheet for a description of LoRa radio packet implicit/explicit modes.
+2 This specification does not describe the transmission of multicast messages from a network server to many end-devices.
+3 No payload integrity check is done at this level to keep messages as short as possible with minimum impact on any duty-cycle limitations of the ISM bands used.
+
+
+3.3 Receive Windows
+Following each uplink transmission the end-device MUST open two short receive windows. The receive window start times are defined using the end of the transmission as a reference.
+
+3.3.1 First receive window channel, data rate, and start
+
+The first receive window RX1 uses a frequency that is a function of the uplink frequency and a data rate that is a function of the data rate used for the uplink. RX1 opens RECEIVE_DELAY11 seconds (+/- 20 microseconds) after the end of the uplink modulation. The relationship between uplink and RX1 slot downlink data rate is region specific and detailed in [PHY]. By default, the first receive window datarate is identical to the datarate of the last uplink.
+
+3.3.2 Second receive window channel, data rate, and start
+
+The second receive window RX2 uses a fixed configurable frequency and data rate and opens RECEIVE_DELAY2 seconds (+/- 20 microseconds) after the end of the uplink modulation. The frequency and data rate used can be modified through MAC commands(see Section 5). The default frequency and data rate to use are region specific and detailed in [PHY].
+
+3.3.3 Receive window duration
+
+The length of a receive window MUST be at least the time required by the end-device’s radio transceiver to effectively detect a downlink preamble.
+
+3.3.4 Receiver activity during the receive windows
+
+If a preamble is detected during one of the receive windows, the radio receiver stays active until the downlink frame is demodulated. If a frame was detected and subsequently
+demodulated during the first receive window and the frame was intended for this end-device
+after address and MIC (message integrity code) checks, the end-device MUST not open the
+second receive window.
+
+
+3.3.5 Network sending a message to an end-device
+
+If the network intends to transmit a downlink to an end-device, it MUST initiate the transmission precisely at the beginning of at least one of the two receive windows. If a downlink is transmitted during both windows, identical frames MUST be transmitted during each window.
+
+3.3.6 Important notice on receive windows
+An end-device SHALL NOT transmit another uplink message before it either has received a downlink message in the first or second receive window of the previous transmission, or the second receive window of the previous transmission is expired.
+
+1 RECEIVE_DELAY1 and RECEIVE_DELAY2 are described in Chapter 6
+
+3.3.7 Receiving or transmitting other protocols
+The node MAY listen or transmit other protocols or do any radio transactions between the LoRaWAN transmission and reception windows, as long as the end-device remains compatible with the local regulation and compliant with the LoRaWAN specification.

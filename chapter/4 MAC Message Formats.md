@@ -3,9 +3,9 @@
 
 ## **第4章 MAC帧格式**
 
-LoRa所有上下行链路消息都会携带PHY载荷，PHY载荷以1字节MAC头(MHDR)开始，紧接着MAC载荷(MACPayload)，最后是4字节的MAC校验码(MIC)。
+LoRa所有上下行链路消息都会携带PHYPayload(物理层载荷)，物理层载荷以1字节MAC头(**MHDR**)开始，紧接着MAC层载荷(**MACPayload**)[1]，最后是4字节的MAC校验码(**MIC**)。
 
-射频PHY层：
+射频物理层结构：
 <table>
    <tr>
       <td>Preamble</td>
@@ -30,7 +30,7 @@ PHY载荷：
 <table>
    <tr>
       <td>MHDR</td>
-      <td bgcolor="#CCCCCC" >Join-Request</td>
+      <td bgcolor="#CCCCCC" >Join-Request 或 Rejoin-Request</td>
       <td>MIC</td>
    </tr>
 </table>
@@ -38,12 +38,14 @@ PHY载荷：
 <table>
    <tr>
       <td>MHDR</td>
-      <td bgcolor="#CCCCCC" >Join-Response</td>
-      <td>MIC</td>
+      <td bgcolor="#CCCCCC" >Join-Accept[2]</td>
    </tr>
 </table>
 图6.PHY载荷结构
 
+> 注：
+[1] 最大有效载荷的长度详见第6章。
+[2] 对于Join-Accept帧，MIC字段使用有效载荷加密，而不是单独的字段.
 
 MAC载荷：
 <table>
@@ -110,7 +112,7 @@ MAC头中指定了消息类型(MType)和帧编码所遵循的LoRaWAN规范的主
 
 #### <a name="4.2.1">4.2.1 消息类型(MType位字段)</a>
 
-LoRaWAN定义了六个不同的MAC消息类型：join request, join accept, unconfirmed data up/down, 以及 confirmed data up/down 。
+LoRaWAN定义了8个不同的MAC消息类型：Join-request, Rejoin-request, Join-accept, unconfirmed data up/down, and confirmed data up/down，proprietary。
 
 <table>
    <tr>
@@ -143,7 +145,7 @@ LoRaWAN定义了六个不同的MAC消息类型：join request, join accept, unco
    </tr>
    <tr>
       <td>110</td>
-      <td>RFU</td>
+      <td>Rejoin-request</td>
    </tr>
    <tr>
       <td>111</td>
@@ -156,17 +158,20 @@ LoRaWAN定义了六个不同的MAC消息类型：join request, join accept, unco
 
 - 4.2.1.1 Join-request and join-accept 消息
 
-join-request和join-accept都是用在空中激活流程中，具体见章节6.2
+join-request、Rejoin-request和join-accept都是用在空中激活流程中，具体见章节6.2，用于漫游目的。
 
 - 4.2.1.2 Data messages
 
-Data messages 用来传输MAC命令和应用数据，这两种命令也可以放在单个消息中发送。
-Confirmed-data message 接收者需要应答。
+Data messages 用来传输MAC命令数据和应用数据，这两种数据也可以放在单个消息中发送。
+Confirmed-data message 接收者需要应答[1]。
 Unconfirmed-data message 接收者则不需要应答。
 Proprietary messages 用来处理非标准的消息格式，不能和标准消息互通，只能用来和具有相同拓展格式的消息进行通信。
+当终端设备或网络服务器收到未知的消息类型时，应该丢弃。
 
 不同消息类型用不同的方法保证消息一致性，下面会介绍每种消息类型的具体情况。
 
+> 注：
+[1] 第19章给出了确认机制的详细时序图。
 
 #### <a name="4.2.2">4.2.2 数据消息的主版本(Major位字段)</a>
 
@@ -187,17 +192,19 @@ Proprietary messages 用来处理非标准的消息格式，不能和标准消�
 
 表2.Major列表
 
-> 注意：Major定义了激活过程中(join procedure)使用的消息格式（见章节6.2）和MAC Payload的前4字节（见第4章）。终端要根据不同的主版本号实现不同最小版本的消息格式。终端使用的最小版本应当提前通知网络服务器。
+> 注意：Major定义了激活过程中(join procedure)使用的消息格式（见章节6.2）和MAC Payload的前4字节（见第4章）。终端要根据不同的主版本号实现不同最小版本的消息格式。必须事先使用带外消息（例如，作为设备个性化信息的一部分）使网络服务器知道终端设备使用的次要版本。 当设备或网络服务器收到携带未知或不受支持的LoRaWAN版本的帧时，应该以丢弃它。
 
 
 ### <a name="4.3">4.3 MAC载荷(MACPayload)</a>
 
 MAC载荷，也就是所谓的“数据帧”，包含：帧头（FHDR）、端口（FPort）以及帧载荷(FRMPayload），其中端口和帧载荷是可选的。
 
+当一个帧具有有效FHDR，但不含Fopts（FoptsLen = 0），不含Fport且不含FRMPayload，这样的帧也是有效的。
+
 
 #### <a name="4.3.1">4.3.1 帧头(FHDR)</a>
 
-FHDR是由终端短地址(DevAddr)、1字节帧控制字节(FCtrl)、2字节帧计数器(FCnt)和用来传输MAC命令的帧选项(FOpts，最多15个字节)组成。
+FHDR是由终端短地址(DevAddr)、1字节帧控制字节(FCtrl)、2字节帧计数器(FCnt)和用来传输MAC命令的帧选项(FOpts，最多15个字节)组成。FOpts字段如果存在，应使用NwkSEncKey加密，如4.3.1.6节所述。
 
 <table>
    <tr>
@@ -229,7 +236,7 @@ FCtrl在上下行消息中有所不同，下行消息如下：
    <tr>
       <td><b>FCtrl bits</b></td>   
       <td>ADR</td>
-      <td>ADRACKReq</td>
+      <td>RFU</td>
       <td>ACK</td>
 	  <td>FPending</td>
 	  <td>FOptsLen</td>
@@ -243,16 +250,16 @@ FCtrl在上下行消息中有所不同，下行消息如下：
       <td>7</td>
       <td>6</td>
       <td>5</td>
-	  <td>4</td>
-	  <td>[3..0]</td>
+      <td>4</td>
+      <td>[3..0]</td>
    </tr>
    <tr>
       <td><b>FCtrl bits</b></td>   
       <td>ADR</td>
       <td>ADRACKReq</td>
       <td>ACK</td>
-	  <td bgcolor="#CCCC00" >RFU</td>
-	  <td>FOptsLen</td>
+      <td>ClassB</td>
+      <td>FOptsLen</td>
    </tr>
 </table>
 
@@ -260,36 +267,104 @@ FCtrl在上下行消息中有所不同，下行消息如下：
 
 LoRa网络允许终端采用任何可能的数据速率。LoRaWAN协议利用该特性来优化固定终端的数据速率。这就是自适应数据速率(Adaptive Data Rate (ADR))。当这个使能时，网络会优化使得尽可能使用最快的数据速率。
 
-移动的终端由于射频环境的快速变化，数据速率管理就不再适用了，应当使用固定的数据速率。
+当无线电信道衰减快速且不断变化时，可能无法进行自适应数据速率控制。 当网络服务器无法控制设备的数据速率时，设备的应用层应该控制它。 在这种情况下，建议使用各种不同的数据速率。 应用层应该总是尽量减少设备积累的空中停留时间。
 
-如果**ADR**的位字段有置位，网络就会通过相应的MAC命令来控制终端设备的数据速率。如果**ADR**位没设置，网络则无视终端的接收信号强度，不再控制终端设备的数据速率。**ADR**位可以根据需要通过终端及网络来设置或取消。不管怎样，ADR机制都应该尽可能使能，帮助终端延长电池寿命和扩大网络容量。
+如果**ADR**的位置高，网络就会通过相应的MAC命令来控制终端设备的数据速率。如果**ADR**位没设置，网络则无视终端的接收信号强度，不再控制终端设备的数据速率。**ADR**位可以根据需要通过终端及网络来设置或取消。
 
-> 注意：即使是移动的终端，可能在大部分时间也是处于非移动状态。因此根据它的移动状态，终端也可以请求网络使用ADR来帮助优化数据速率。
+当下行链路ADR位置高时，它通知终端设备网络服务器将要发送ADR命令。 设备可以设置/取消上行链路ADR位。
 
-如果终端被网络优化过的数据速率高于自己默认的数据速率，它需要定期检查下网络仍能收到上行的数据。每次上行帧计数都会累加(是针对于每个新的上行包，重传包就不再增加计数)，终端增加 ADR_ACK_CNT 计数。如果直到ADR_ACK_LIMIT次上行(ADR_ACK_CNT >= ADR_ACK_LIMIT)都没有收到下行回复，它就得置高ADR应答请求位(**ADRACKReq**)。 网络必须在规定时间内回复一个下行帧，这个时间是通过ADR_ACK_DELAY来设置，上行之后收到任何下行帧就要把ADR_ACK_CNT的计数重置。当终端在接收时隙中的任何回复下行帧的ACK位字段不需要设置，表示网关仍在接收这个设备的上行帧。如果在下一个ADR_ACK_DELAY上行时间内都没收到回复(例如，在总时间ADR_ACK_LIMIT+ADR_ACK_DELAY之后)，终端必须切换到下一个更低速率，使得能够获得更远传输距离来重连网络。终端如果在每次ADR_ACK_DELAY到了之后依旧连接不上，就需要每次逐步降低数据速率。如果终端用它的默认数据速率，那就不需要置位**ADRACKReq**，因为无法帮助提高链路距离。
+当下行链路ADR位未设置时，它向终端设备发信号通知由于无线电信道的快速变化，网络暂时无法估计最佳数据速率。 在这种情况下，设备可以选择
+
+- 上行链路ADR位置低，并按照自己的策略控制其上行链路数据速率。 这应该是移动终端设备的典型策略。
+
+- 忽略它（保持上行链路ADR位置高）并在没有ADR下行链路命令的情况下应用正常数据速率衰减。 这应该是固定式终端设备的典型策略。
+
+ADR位可以由终端设备或网络服务器按需设置和取消设置。 但是，只要有可能，应该启用ADR方案以延长终端设备的电池寿命，并使网络容量最大化。
+
+> 注意：即使移动终端设备在大多数情况下实际上也是不动的。 因此，根据其移动状态，终端设备可以请求网络使用上行链路ADR位来优化其数据速率。
+
+默认发送功率是在考虑设备功能和区域监管限制时，设备允许的最大传输功率。 设备应使用此功率级别，直到网络通过LinkADRReq MAC命令减小功率。
+
+如果终端被网络优化过的数据速率高于自己默认的数据速率，或者发送功率低于默认功率，它需要定期检查网络仍能收到上行的数据。每次上行帧计数都会累加(是针对于每个新的上行包，重传包就不再增加计数)，终端增加 ADR_ACK_CNT 计数。如果直到ADR_ACK_LIMIT次上行(ADR_ACK_CNT >= ADR_ACK_LIMIT)都没有收到下行回复，它就得置高ADR应答请求位(**ADRACKReq**)。 网络必须在规定时间内回复一个下行帧，这个时间是通过ADR_ACK_DELAY来设置，上行之后收到任何下行帧就要把ADR_ACK_CNT的计数重置。当终端在接收时隙中的任何回复下行帧的ACK位字段不需要设置，表示网关仍在接收这个设备的上行帧。如果在下一个ADR_ACK_DELAY上行时间内都没收到回复(例如，在总时间ADR_ACK_LIMIT+ADR_ACK_DELAY之后)，终端必须切换到下一个更低速率，使得能够获得更远传输距离来重连网络。终端如果在每次ADR_ACK_DELAY到了之后依旧连接不上，就需要每次逐步降低数据速率。如果终端用它的默认数据速率，那就不需要置位**ADRACKReq**，因为无法帮助提高链路距离。
 
 > 注意：不要ADRACKReq立刻回复，这样给网络预留一些余量，让它做出最好的下行调度处理。
 
-> 注意：上行传输时，如果 ADR_ACK_CNT >= ADR_ACK_LIMIT 并且当前数据速率比设备的最小数据速率高，就要设置 ADRACKReq，其它情况下不需要。
+> 注意：上行传输时，如果 ADR_ACK_CNT >= ADR_ACK_LIMIT 并且当前数据速率比设备的最小数据速率高，或者发射功率比默认功率人氏，或者当前信道掩码仅使用默认通道的子集，这三种情况就要设置 ADRACKReq，其它情况下不需要。
+
+下表提供了数据速率补偿序列的示例，假设ADR_ACK_LIMIT和ADR_ACK_DELAY常量均等于32。
+
+<table>
+   <tr>
+      <td><b>ADR_ACK_CNT</b></td>   
+      <td><b>ADRACKReq bit</b></td>
+      <td><b>Data Rate</b></td>
+      <td><b>TX power</b></td>
+      <td><b>Channel Mask</b></td>
+   </tr>
+   <tr>
+      <td>0 to 63</td>
+      <td>0</td>
+      <td>SF11</td>
+      <td>Max – 9dBm</td>
+      <td>Single channel enabled</td>
+   </tr>
+   <tr>
+      <td>64 to 95</td>
+      <td>1</td>
+      <td>Keep</td>
+      <td>Keep</td>
+      <td>Keep</td>
+   </tr>
+   <tr>
+      <td>96 to 127</td>
+      <td>1</td>
+      <td>Keep</td>
+      <td><b>Max</b></td>
+      <td>Keep</td>
+   </tr>
+   <tr>
+      <td>128 to 159</td>
+      <td>1</td>
+      <td><b>SF12</b></td>
+      <td>Max</td>
+      <td>Keep</td>
+   </tr>
+   <tr>
+      <td>>= 160</td>
+      <td>0</td>
+      <td>SF12</td>
+      <td>Max</td>
+      <td><b>All channels enabled</b></td>
+   </tr>
+</table>
 
 - 4.3.1.2 消息应答位及应答流程(ACK in FCtrl)
 
-收到confirmed类型的消息时，接收端要回复一条应答消息(应答位ACK要进行置位)。如果发送者是终端，网络就利用终端发送操作后打开的两个接收窗口之一进行回复。如果发送者是网关，终端就自行决定是否发送应答。 
-应答消息只会在收到消息后回复发送，并且不重发。
+收到confirmed类型的消息时，接收端要回复一条应答消息(应答位ACK要进行置位)。如果发送者是终端，网络就利用终端发送操作后打开的两个接收窗口之一进行回复。如果发送者是网关，终端就自行决定是否发送应答（见下面的**注意**）。 
 
-> 注意：为了让终端尽可能简单，尽可能减少状态，在收到confirmation类型需要确认的数据帧，需要立即发送一个严格的应答数据帧。或者，终端会延迟发送应答，在它下一个数据帧中再携带。
+应答消息的发送只是为了回复收到的最后一条消息，并且永远不重发。
+
+> 注意：为了让终端尽可能简单，尽可能减少状态，在收到confirmation类型需要确认的数据帧，需要立即发送一个显式（也可能是空的）的应答数据帧。或者，终端会延迟发送应答，在它下一个数据帧中再携带。
 
 - 4.3.1.3 重传流程
 
-当需要应答却没收到应答时就会进行重发，重发的个数由终端自己定，可能每个终端都不一样，这个参数也可以由网络服务器来设置调整。
+**下行链路帧：**
 
-> 注意：一些应答机制的示例时序图在第18章中有提供。
+下行链路的“confirmed”或“unconfirmed”帧不应使用相同的帧计数器值重传。 在“confirmed”下行链路帧丢失时，如果没有接收到确认帧，则应用服务器可以决定重新发送新的“confirmed”帧。
 
-> 注意：如果终端设备重发次数到达了最大值，它可以降低数据速率来重连。至于后面是否再重发还是说丢弃不管，都取决于终端自己。
+**上行链路帧：**
 
-> 注意：如果网络服务器重发次数到达了最大值，它就认为该终端掉线了，直到它再收到终端的消息。一旦和终端设备的连接出现问题时，要不要重发都取决于网络服务器自己。
+上行链路“confirmed”和“unconfirmed”帧被发送“NbTrans”次（见5.3节），除非在其中一次传输之后接收到有效的下行链路消息。 网络管理器可以使用“NbTrans”参数来控制节点上行链路的冗余，以获得给定的服务质量。
 
-> 注意：在重传期间的数据速率回退的建议策略在章节18.4中有描述。
+如果接收到相应的下行链路确认帧，则设备应停止上行链路“confirmed”帧的重传。
+
+只要在RX1时隙窗口期间接收到有效的单播下行链路消息，ClassB和ClassC设备就会停止上行链路“unconfirmed”帧的重传。
+
+每当在RX1或RX2时隙窗口期间接收到有效的下行链路消息时，ClassA设备应停止上行链路“unconfirmed”帧的重传。
+
+如果网络接收到多于NbTrans次相同上行链路帧，则这可能是 replay 攻击，或者可能设备故障，因此网络不应处理这些帧。
+
+> 注意：检测重放攻击的网络可能采取其他措施，例如将NbTrans参数减少为1，或将原来信道接收的上行链路帧丢弃，这个信道已经传输了相同的帧，或者一些其他未指明的机制。
 
 
 - 4.3.1.4 帧挂起位(FPending in FCtrl 只在下行有效)
