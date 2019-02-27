@@ -369,38 +369,103 @@ ADR位可以由终端设备或网络服务器按需设置和取消设置。 但�
 
 - 4.3.1.4 帧挂起位(FPending in FCtrl 只在下行有效)
 
-帧挂起位(FPending)只在下行交互中使用，表示网关还有挂起数据等待下发，需要终端尽快发送上行消息来再打开一个接收窗口。
+帧挂起位(FPending)只在下行通信中使用，表示网关还有下行数据等待下发，需要终端尽快发送上行消息来再打开一个接收窗口。
 
-**FPending**的详细用法在章节18.3。
+**FPending**的详细用法在章节19.3。
 
 - 4.3.1.5 帧计数器(FCnt)
 
-每个终端有两个计数器跟踪数据帧的个数，一个是上行链路计数器（FCntUp），由终端在每次上行数据给网络服务器时累加；另一个是下行链路计数器（FCntDown），由服务器在每次下行数据给终端时累计。 网络服务器为每个终端跟踪上行帧计数及产生下行帧计数。  终端入网成功后，终端和服务端的上下行帧计数同时置0。 每次发送消息后，发送端与之对应的 FCntUp 或 FCntDown 就会加1。 接收方会同步保存接收数据的帧计数，对比收到的计数值和当前保存的值，如果两者相差小于 MAX_FCNT_GAP （要考虑计数器滚动），接收方就按接收的帧计数更新对应值。如果两者相差大于 MAX_FCNY_GAP 就说明中间丢失了很多数据，这条以及后面的数据就被丢掉。
+每个终端有3个计数器跟踪数据帧的个数，一个是上行链路计数器（FCntUp），由终端在每次上行数据给网络服务器时累加；另一个是下行链路计数器（FCntDown），由服务器在每次下行数据给终端时累计。 
 
-LoRaWAN的帧计数器可以用16位和32位两种，节点上具体执行哪种计数，需要在带外通知网络侧，告知计数器的位数。
-如果采用16位帧计数，**FCnt**字段的值可以使用帧计数器的值，此时有需要的话通过在前面填充0（值为0）字节来补足；如果采用32位帧计数，
-**FCnt**就对应计数器32位的16个低有效位(上行数据使用上行FCnt，下行数据使用下行FCnt)。
+在下行链路方向上存在两种不同的帧计数器方案。 单个计数器方案，其中所有端口在设备使用 LoRaWAN1.0 时共享相同的下行链路帧计数器FCntDown。双计数器方案，在端口0和FPort字段缺失时，使用单独的NFCntDown进行MAC通信，当设备使用 LoRaWAN1.1 时，另一个AFCntDown用于除端口0外的其他端口。
 
-终端在相同应用和网络密钥下，不能重复用相同的FCntUp数值，除非是重传。
+下行链路双计数器方案中，NFCntDown由网络服务器管理，而AFCntDown由应用服务器管理。
+
+> 注意：LoRaWAN v1.0及更早版本仅支持一个FCntDown计数器（在所有端口之间共享），并且网络服务器必须注意支持LoRaWAN v1.1之前的设备。
+
+每当OTAA设备成功处理Join-accept消息时，上行帧计数器（FCntUp）和下行帧计数器（NFCntDown和AFCntDown）将重置为0。
+
+ABP入网的设备帧计数器在制造时初始化为0。在ABP设备中，帧计数器不能在设备的运行期间复位。如果终端设备在其运行期间容易断电（例如更换电池），则在这种情况下帧计数器应该持久化（比如存储到flash中）。
+
+随后，FCntUp随每个上行链路递增。 NFCntDown 随着每个下行链路递增（FPort 为 0 或 FPort 不存在）。 AFCntDown随着每个下行链路递增（FPort 不为 0）。在接收侧，相应的计数器与接收的值保持同步，前提是接收的值与当前计数器值相比递增，并且消息MIC字段与利用网络会话密钥计算出的MIC匹配。在多次传输 confirmed 或 unconfirmed 的帧的情况下，FCnt不会递增（请参阅NbTrans参数）。网络服务器应删除重复传输的帧，并仅将单个实例转发到应用程序服务器。
+
+网络服务器为每个终端跟踪上行帧计数及产生下行帧计数。  终端入网成功后，终端和服务端的上下行帧计数同时置0。 每次发送消息后，发送端与之对应的 FCntUp 或 FCntDown 就会加1。 接收方会同步保存接收数据的帧计数，对比收到的计数值和当前保存的值，如果两者相差小于 MAX_FCNT_GAP （要考虑计数器滚动），接收方就按接收的帧计数更新对应值。如果两者相差大于 MAX_FCNY_GAP 就说明中间丢失了很多数据，这条以及后面的数据就被丢掉。
+
+帧计数器是32位宽，**FCnt**字段对应于32位帧计数器的最低有效16位（即，用于发送上行链路的数据帧的FCntUp和用于下行链路发送的数据帧的AFCntDown / NFCntDown）。
+
+终端设备不应重复使用相同的FCntUp值（在相同应用下）或网络会话密钥，除了重传相同的 confirmed 或 unconfirmed 的帧。
+
+终端设备应该永远不会处理相同下行链路帧的任何重传。 应该忽略重传的帧，不做处理。
+
+> 注意：这意味着一旦接收到下行链路 confirmed 帧，设备将仅回复消息（ACK），类似地，设备将仅在接收到设置了FPending位的帧之后生成单个上行链路消息。
+
+> 注意：由于FCnt字段仅携带32位帧计数器的最低有效16位，因此服务器必须从通信状况推断出帧计数器的16个最高有效位。
 
 - 4.3.1.6 帧可选项(FOptsLen in FCtrl, FOpts)
-FCtrl 字节中的FOptsLen位字段描述了整个帧可选项(FOpts)的字段长度。
+
+FCtrl 字节中的**FOptsLen**位字段描述了整个帧可选项(**FOpts**)的字段长度。
 
 FOpts字段存放MAC命令，最长15字节，详细的MAC命令见章节4.4。
 
-如果FOptsLen为0，则FOpts为空。在FOptsLen非0时，则反之。如果MAC命令在FOpts字段中体现，port0不能用(FPort要么不体现，要么非0)。
+如果FOptsLen为0，则FOpts为空。在FOptsLen非0时，则反之。如果MAC命令在FOpts字段中体现，port0不能用(FPort要么不存在，要么非0)。
 
 MAC命令不能同时出现在FRMPayload和FOpts中，如果出现了，设备丢掉该组数据。
 
+如果帧头部携带FOpts，则必须在计算消息完整性代码（MIC）之前对FOpts进行加密。
 
-#### <a name="4.3.2">4.3.2 端口字段(FPort)</a>
+所使用的加密方案基于 IEEE 802.15.4/2006 Annex B [IEEE802154] 中描述的通用算法，其使用密钥长度为128位的AES。
 
-如果帧载荷字段不为空，端口字段必须体现出来。端口字段有体现时，若FPort的值为0表示FRMPayload只包含了MAC命令；具体见章节4.4中的MAC命令。  FPort的数值从1到223(0x01..0xDF)都是由应用层使用。  FPort的值从224到255(0xE0..0xFF)是保留用做未来的标准应用拓展。
+使用的密钥K是上行链路和下行链路方向上的Fwpts字段的NwkSEncKey。
+
+加密的字段是：pld = FOpts
+
+对于每条消息，算法定义一个数据块A：
 
 <table>
    <tr>
       <td><b>Size(bytes)</b></td>   
-      <td>7..23</td>
+      <td>1</td>
+      <td>4</td>
+      <td>1</td>
+	  <td>4</td>
+	  <td>4</td>
+	  <td>1</td>
+	  <td>1</td>
+   </tr>
+   <tr>
+      <td><b>A</b></td>
+      <td>0x01</td>	  
+      <td>4 x 0x00</td>
+      <td>Dir</td>
+      <td>DevAddr</td>
+	  <td>FCntUp or NFCntDwn</td>
+	  <td>0x00</td>
+	  <td>0x00</td>
+   </tr>
+</table>
+
+方向字段（Dir）当上行链路帧为0，当下行链路帧为1。
+
+数据块A被加密以获得数据块S：
+
+> S = aes128_encrypt（K，A）
+
+通过将 （pld | pad16）xor S 截断到第一个len（pld）八位字节来完成FOpts的加密和解密。
+
+#### <a name="4.3.2">4.3.2 端口字段(FPort)</a>
+
+如果帧载荷字段不为空，端口字段必须体现出来。端口字段有体现时，若FPort的值为0表示FRMPayload只包含了MAC命令；具体见第5章中的MAC命令。  FPort的数值从1到223(0x01..0xDF)都是由应用层使用。FPort值224专用于LoRaWAN MAC层测试协议。 LoRaWAN实现应该丢弃FPort值不在1..224范围内的应用层的任何传输请求。
+
+> 注意：FPort值224的目的是提供专用的FPort，以便在最终版本的设备上通过无线方式运行MAC一致性测试场景，而无需在实际方面依赖于设备的特定测试版本。该测试不应与实时操作同时进行，但设备的MAC层实现应完全是可正常的使用。通常使用AppSKey加密测试协议。这可确保网络服务器不能在没有设备所有者参与的情况下启用设备的测试模式。如果测试在实时网络连接设备上运行，则网络侧测试应用程序学习AppSKey的方式不在LoRaWAN规范的范围。如果测试在专用测试平台（不是实时网络）上使用OTAA运行，则AppKey与测试平台通信的方式，对于安全的JOIN过程，也不在规范范围内。
+
+> 在应用层运行的测试协议是在LoRaWAN规范之外定义的，因为它是一个应用层协议。
+
+FPort值225..255（0xE1..0xFF）保留用于将来的标准化应用程序扩展。
+
+<table>
+   <tr>
+      <td><b>Size(bytes)</b></td>   
+      <td>7..22</td>
       <td>0..1</td>
       <td>0..N</td>
    </tr>
@@ -412,40 +477,44 @@ MAC命令不能同时出现在FRMPayload和FOpts中，如果出现了，设备�
    </tr>
 </table>
 
-N是应用程序载荷的字节个数。N的有效范围具体在第7章有定义。
+N是应用程序载荷的字节个数。N的有效范围具体在[PHY]（物理层参数文档）定义。
 
 N应该小于等于：
-N <= M - 1 - (FHDR长度)
+
+> N < = M - 1 - (FHDR长度)
+
 M是MAC载荷的最大长度。
 
 #### <a name="4.3.3">4.3.3 MAC帧载荷加密(FRMPayload)</a>
 如果数据帧携带了载荷，FRMPayload必须要在MIC计算前进行加密。
-加密机制是采用IEEE802.15.4/2006的AES128算法。
 
-默认的，加密和解密由LoRaWAN层来给所有的FPort来执行。如果加密/解密由应用层来做更方便的话，也可以在LoRaWAN层之上给特定FPorts来执行，除了端口0。具体哪个节点的哪个FPort在LoRaWAN层之外要做加解密，必须要和服务器通过out-of-band信道来交互(见第19章)。
+加密机制是采用 IEEE 802.15.4/2006 Annex B [IEEE802154] 的AES128算法。
 
-- 4.3.3.1 LoRaWAN的加密
-
-密钥K根据不同的FPort来使用：
+使用的密钥K取决于数据消息的FPort：
 
 <table>
    <tr>
       <td><b>FPort</b></td>   
+      <td><b>Direction</b></td>   
       <td><b>K</b></td> 
    </tr>
    <tr>
       <td>0</td>
-      <td>NwkSKey</td>
+      <td>Uplink/downlink</td>
+      <td>NwkSEncKey</td>
    </tr>
    <tr>
       <td>1..255</td>
+      <td>Uplink/downlink</td>
       <td>AppSKey</td>
    </tr>
 </table>
 表3: FPort列表
 
-具体加密是这样：
-pld = FRMPayload
+加密的字段是：
+
+> pld = FRMPayload
+
 对于每个数据帧，算法定义了一个块序列Ai，i从1到k，k = ceil(len(pld) / 16)：
 <table>
    <tr>
@@ -464,7 +533,7 @@ pld = FRMPayload
       <td>4 x 0x00</td>
       <td>Dir</td>
       <td>DevAddr</td>
-	  <td>FCntUp or FCntDown</td>
+	  <td>FCntUp or NFCntDwn or AFCntDnw</td>
 	  <td>0x00</td>
 	  <td>i</td>
    </tr>
@@ -475,7 +544,11 @@ pld = FRMPayload
 > Si = aes128_encrypt(K, Ai) for i = 1..k
 > S = S1 | S2 | .. | Sk
 
-通过异或计算对payload进行加解密：
+有效载荷的加密和解密通过截断来完成
+
+> （pld | pad16）xor S.
+
+到第一个len（pld）八位字节。
 
 - 4.3.3.2 LoRaWAN层之上的加密  
 
@@ -483,11 +556,16 @@ pld = FRMPayload
 
 ## <a name="4.4">4.4 消息校验码(MIC)</a>
 消息检验码要计算消息中所有字段。
-msg = MHDR | FHDR | FPort | FRMPayload
 
-MIC是按照[RFC4493]来计算：
-> cmac = aes128_cmac(NwkSKey, B0 | msg)
-> MIC = cmac[0..3]
+> msg = MHDR | FHDR | FPort | FRMPayload
+
+其中len（msg）表示以八位字节为单位的消息长度。
+
+4.4.1 下行链路帧
+下行链路帧的MIC计算如下[RFC4493]：
+
+> cmac = aes128_cmac（SNwkSIntKey，B0 | msg）
+> MIC = cmac [0..3]
 
 块B0的定义如下：
 
@@ -495,7 +573,8 @@ MIC是按照[RFC4493]来计算：
    <tr>
       <td><b>Size(bytes)</b></td>   
       <td>1</td>
-      <td>4</td>
+      <td>2</td>
+      <td>2</td>
       <td>1</td>
 	  <td>4</td>
 	  <td>4</td>
@@ -504,15 +583,91 @@ MIC是按照[RFC4493]来计算：
    </tr>
    <tr>
       <td><b>B0</b></td>
-      <td>0x49</td>	  
-      <td>4 x 0x00</td>
-      <td>Dir</td>
+      <td>0x49</td>	 
+      <td>ConfFCnt</td>
+      <td>2 x 0x00</td>
+      <td>Dir=0x01</td>
       <td>DevAddr</td>
-	  <td>FCntUp or FCntDown</td>
-	  <td>0x00</td>
-	  <td>len(msg)</td>
+      <td>AFCntDwn or NFCntDwn</td>
+      <td>0x00</td>
+      <td>len(msg)</td>
    </tr>
 </table>
 
-方向字段(**Dir**)在上行帧时为0，在下行帧时为1。
+如果设备连接到LoRaWAN1.1网络服务器并且下行链路帧的ACK位被设置，意味着该帧是确认上行链路的“confirmed”帧，则ConfFCnt是确认上行链路的“confirmed”帧帧计数器对 2 ^ 16 取模。 在所有其他情况下，ConfFCnt = 0x0000。
 
+- 4.4.2上行链路帧
+
+上行链路帧的MIC通过以下过程计算：
+
+数据块B0定义如下：
+
+<table>
+   <tr>
+      <td><b>Size(bytes)</b></td>
+      <td>1</td>
+      <td>4</td>
+      <td>1</td>
+      <td>4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+   </tr>
+   <tr>
+      <td><b>B0</b></td>
+      <td>0x49</td>
+      <td>0x0000</td>
+      <td>Dir=0x00</td>
+      <td>DevAddr</td>
+      <td>FCntUp</td>
+      <td>0x00</td>
+      <td>len(msg)</td>
+   </tr>
+</table>
+
+数据块B1定义如下：
+<table>
+   <tr>
+      <td><b>Size(bytes)</b></td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+   </tr>
+   <tr>
+      <td><b>B1</b></td>
+      <td>0x49</td>
+      <td>ConfFCnt</td>
+      <td>TxDr</td>
+      <td>TxCh</td>
+      <td>Dir = 0x00</td>
+      <td>DevAddr</td>
+      <td>FCntUp</td>
+      <td>0x00</td>
+      <td>len(msg)</td>
+   </tr>
+</table>
+
+其中：
+
+- TxDr是用于传输上行链路的数据速率。
+
+- TxCh是用于传输的信道的索引值。
+
+- 如果设置了上行链路帧的ACK位，意味着该帧正在确认下行链路“confirmed已确认”帧，则ConfFCnt是确认“confirmed”下行链路帧计数器值对2 ^ 16取模。 在所有其他情况下，ConfFCnt = 0x0000。
+
+> cmacS = aes128_cmac(SNwkSIntKey, B1 | msg)
+> cmacF = aes128_cmac(FNwkSIntKey, B0 | msg)
+
+如果设备连接到LoRaWAN1.0网络服务器，则：
+
+> MIC = cmacF[0..3]
+
+如果设备连接到LoRaWAN1.1网络服务器，则：
+
+> MIC = cmacS[0..1] | cmacF[0..1]
