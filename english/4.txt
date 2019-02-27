@@ -100,8 +100,23 @@ Class B&C devices SHALL stop any further retransmission of an uplink “unconfirme
 
 Class A devices SHALL stop any further retransmission of an uplink “unconfirmed” frame whenever a valid downlink message is received during the RX1 or the RX2 slot window.
 
+If the network receives more than NbTrans transmissions of the same uplink frame, this may be an indication of a replay attack or a malfunctioning device, and therefore the network SHALL not process the extra frames.
 
+NOTE: The network detecting a replay attack may take additional measures, such as reducing the NbTrans parameter to 1, or discarding uplink frames that are received over a channel that was already used by an earlier transmission of the same frame, or by some other unspecified mechanism
 
+4.3.1.4 Frame pending bit (FPending in FCtrl, downlink only)
+
+The frame pending bit (FPending) is only used in downlink communication, indicating that the network has more data pending to be sent and therefore asking the end-device to open another receive window as soon as possible by sending another uplink message. The exact use of FPending bit is described in Chapter 19.3.
+
+4.3.1.5 Frame counter (FCnt)
+
+Each end-device has three frame counters to keep track of the number of data frames sent uplink to the Network Server (FCntUp), and sent downlink from the Network Server to the device (FCntDown).
+
+In the downlink direction two different frame counter scheme exists; a single counter scheme in which all ports share the same downlink frame counter FCntDown when the device operates as a LoRaWAN1.0 device, and a two-counter scheme in which a separate NFCntDown is used for MAC communication on port 0 and when the FPort field is missing, and another AFCntDown is used for all other ports when the device operates as a LoRaWAN1.1 device.
+
+In the two counters scheme the NFCntDown is managed by the Network Server, whereas the AFCntDown is managed by the application server.
+
+Note: LoRaWAN v1.0 and earlier support only one FCntDown counter(shared across all ports) and the Network Server must take care to support this scheme for devices prior to LoRaWAN v1.1.
 
 
 

@@ -1,0 +1,58 @@
+14 Class B MAC commands
+All commands described in the Class A specification SHALL be implemented in Class B devices. The Class B specification adds the following MAC commands.
+
+14.1 PingSlotInfoReq
+
+With the PingSlotInfoReq command an end-device informs the server of its unicast ping slot periodicity. This command may only be used to inform the server of the periodicity of a UNICAST ping slot. A multicast slot is entirely defined by the application and should not use this command.
+
+The Periodicity subfield is an unsigned 3 bits integer encoding the ping slot period currently used by the end-device using the following equation.
+
+The actual ping slot periodicity will be equal to XXXXXX in seconds
+
+• Periodicity = 0 means that the end-device opens a ping slot approximately every second during the beacon_window interval
+
+• Periodicity = 7 , every 128 seconds which is the maximum ping period supported by the LoRaWAN Class B specification.
+
+To change its ping slot periodicity a device SHALL first revert to Class A , send the new periodicity through a PingSlotInfoReq command and get an acknowledge from the server through a PingSlotInfoAns . It MAY then switch back to Class B with the new periodicity. This command MAY be concatenated with any other MAC command in the FHDRFOpt field as described in the Class A specification frame format.
+
+
+14.2 BeaconFreqReq
+This command is sent by the server to the end-device to modify the frequency on which this end-device expects the beacon.
+
+The Frequency coding is identical to the NewChannelReq MAC command defined in the Class A.
+
+Frequency is a 24bits unsigned integer. The actual beacon channel frequency in Hz is 100 x frequ. This allows defining the beacon channel anywhere between 100 MHz to 1.67 GHz by 100 Hz step. The end-device has to check that the frequency is actually allowed by its radio hardware and return an error otherwise.
+
+
+A valid non-zero Frequency will force the device to listen to the beacon on a fixed frequency channel even if the default behavior specifies a frequency hopping beacon (i.e US ISM band).
+
+A value of 0 instructs the end-device to use the default beacon frequency plan as defined in the “Beacon physical layer” section. Where applicable the device resumes frequency hopping beacon search.
+
+Upon reception of this command the end-device answers with a BeaconFreqAns message. The MAC payload of this message contains the following information:
+
+
+14.3 PingSlotChannelReq
+This command is sent by the server to the end-device to modify the frequency and/or the data rate on which the end-device expects the downlink pings.
+
+This command can only be sent in a class A receive window (following an uplink). The command SHALL NOT be sent in a class B ping-slot. If the device receives it inside a class B ping-slot, the MAC command SHALL NOT be processed. Once the NS has sent the first PingSlotChannelReq command, it SHOULD resend it until it receives a PingSlotChannelAns from the device. It MUST NOT attempt to use a class B ping slot until it receives the PingSlotChannelAns.
+
+
+The Frequency coding is identical to the NewChannelReq MAC command defined in the Class A.
+
+Frequency is a 24bits unsigned integer. The actual ping channel frequency in Hz is 100 x frequ. This allows defining the ping channel anywhere between 100MHz to 1.67GHz by 100Hz step. The end-device has to check that the frequency is actually allowed by its radio hardware and return an error otherwise.
+
+
+A value of 0 instructs the end-device to use the default frequency plan. Where applicable the device resumes frequency hopping beacon search.
+
+The DR byte contains the following fields:
+
+The “data rate” subfield is the index of the Data Rate used for the ping-slot downlinks. The relationship between the index and the physical data rate is defined in [PHY] for each region.
+
+Upon reception of this command the end-device answers with a PingSlotFreqAns message. The MAC payload of this message contains the following information:
+
+
+If either of those 2 bits equals 0, the command did not succeed and the ping-slot parameters have not been modified.
+
+14.4 BeaconTimingReq & BeaconTimingAns
+
+These MAC commands are deprecated in the LoRaWAN1.0.3 version. The device may use DeviceTimeReq&Ans commands as a substitute.
