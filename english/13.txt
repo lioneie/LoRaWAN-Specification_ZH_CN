@@ -1,0 +1,44 @@
+13 Class B Downlink slot timing
+
+13.1 Definitions
+
+To operate successfully in Class B the end-device must open reception slots at precise instants relative to the infrastructure beacon. This section defines the required timing. 
+
+The interval between the start of two successive beacons is called the beacon period. The beacon frame transmission is aligned with the beginning of the BEACON_RESERVED interval. Each beacon is preceded by a guard time interval where no ping slot can be placed. The length of the guard interval corresponds to the time on air of the longest allowed frame. This is to insure that a downlink initiated during a ping slot just before the guard time will always have time to complete without colliding with the beacon transmission. The usable time interval for ping slot therefore spans from the end of the beacon reserved time interval to the beginning of the next beacon guard interval.
+
+The beacon frame time on air is actually much shorter than the beacon reserved time interval to allow appending network management broadcast frames in the future. 
+
+The beacon window interval is divided into 212 = 4096 ping slots of 30 ms each numbered from 0 to 4095.
+
+An end-device using the slot number N must turn on its receiver exactly Ton seconds after the start of the beacon where:
+
+Ton = beacon_reserved + N * 30 ms
+
+N is called the slot index.
+
+The latest ping slot starts at beacon_reserved + 4095 * 30 ms = 124 970 ms after the beacon start or 3030 ms before the beginning of the next beacon.
+
+13.2 Slot randomization
+
+To avoid systematic collisions or over-hearing problems the slot index is randomized and changed at every beacon period.
+
+The following parameters are used:
+
+At each beacon period the end-device and the server compute a new pseudo-random offset to align the reception slots. An AES encryption with a fixed key of all zeros is used to randomize:
+
+Key = 16 x 0x00
+Rand = aes128_encrypt(Key, beaconTime | DevAddr | pad16)
+pingOffset = (Rand[0] + Rand[1]x 256) modulo pingPeriod
+
+The slots used for this beacon period will be:
+
+pingOffset + N x pingPeriod with N=[0:pingNb-1]
+
+The node therefore opens receive slots starting at :
+
+If the end-device serves simultaneously a unicast and one or more multicast slots this computation is performed multiple times at the beginning of a new beacon period. Once for the unicast address (the node network address) and once for each multicast group address.
+
+In the case where a multicast ping slot and a unicast ping slot collide and cannot be served by the end-device receiver then the end-device should preferentially listen to the multicast slot. If there is a collision between multicast reception slots the FPending bit of the previous
+multicast frame can be used to set a preference.
+
+The randomization scheme prevents a systematic collision between unicast and multicast slots. If collisions happen during a beacon period then it is unlikely to occur again during the next beacon period.

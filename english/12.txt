@@ -1,0 +1,23 @@
+12 Beacon acquisition and tracking
+
+Before switching from Class A to Class B, the end-device must first receive one of the network beacons to align his internal timing reference with the network.
+
+Once in Class B, the end-device must periodically search and receive a network beacon to cancel any drift of its internal clock time base, relative to the network timing.
+
+A Class B device may be temporarily unable to receive beacons (out of range from the network gateways, presence of interference, ..). In this event, the end-device has to gradually widen its beacon and ping slots reception windows to take into account a possible drift of its internal clock.
+
+Note: For example, a device which internal clock is defined with a +/- 10ppm precision may drift by +/-1.3mSec every beacon period.
+
+12.1 Minimal beacon-less operation time
+
+In the event of beacon loss, a device shall be capable of maintaining Class B operation for 2 hours (120 minutes) after it received the last beacon. This temporary Class B operation without beacon is called “beacon-less” operation. It relies on the end-device’s own clock to keep timing.
+
+During beacon-less operation, unicast, multicast and beacon reception slots must all be progressively expanded to accommodate the end-device’s possible clock drift.
+
+12.2 Extension of beacon-less operation upon reception
+
+During this 120 minutes time interval the reception of any beacon directed to the end-device, should extend the Class B beacon-less operation further by another 120 minutes as it allows to correct any timing drift and reset the receive slots duration.
+
+12.3 Minimizing timing drift
+
+The end-devices may use the beacon’s (when available) precise periodicity to calibrate their internal clock and therefore reduce the initial clock frequency imprecision. As the timing oscillator’s exhibit a predictable temperature frequency shift, the use of a temperature sensor could enable further minimization of the timing drift.

@@ -1,0 +1,23 @@
+11 Downlink Ping frame format (Class B option)
+
+11.1 Physical frame format
+
+A downlink Ping uses the same format as a Class A downlink frame but might follow a different channel frequency plan.
+
+11.2 Unicast & Multicast MAC messages
+
+Messages can be “unicast” or “multicast”. Unicast messages are sent to a single end-device and multicast messages are sent to multiple end-devices. All devices of a multicast group must share the same multicast address and associated encryption keys. The LoRaWAN Class B specification does not specify means to remotely setup such a multicast group or securely distribute the required multicast key material. This must either be performed during the node personalization or through the application layer.
+
+11.2.1 Unicast MAC message format
+
+The MAC payload of a unicast downlink Ping uses the format defined in the Class A specification. It is processed by the end-device in exactly the same way. The same frame counter is used and incremented whether the downlink uses a Class B ping slot or a Class A “piggy-back” slot.
+
+11.2.2 Multicast MAC message format
+
+The Multicast frames share most of the unicast frame format with a few exceptions:
+
+ They are not allowed to carry MAC commands, neither in the FOpt field, nor in the payload on port 0 because a multicast downlink does not have the same authentication robustness as a unicast frame.
+
+ The ACK and ADRACKReq bits must be zero. The MType field must carry the value for Unconfirmed Data Down.
+
+ The FPending bit indicates there is more multicast data to be sent. If it is set the next multicast receive slot will carry a data frame. If it is not set the next slot may or may not carry data. This bit can be used by end-devices to evaluate priorities for conflicting reception slots.

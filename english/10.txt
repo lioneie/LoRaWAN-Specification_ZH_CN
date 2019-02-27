@@ -1,0 +1,8 @@
+
+10 Uplink frame in Class B mode
+
+The uplink frames in Class B mode are same as the Class A uplinks with the exception of the RFU bit in the FCtrl field in the Frame header. In the Class A uplink this bit is unused(RFU). This bit is used for Class B uplinks.
+
+The Class B bit set to 1 in an uplink signals the Network Server that the device as switched to Class B mode and is now ready to receive scheduled downlink pings.
+
+The signification of the FPending bit for downlink is unaltered and still signals that one or more downlink frames are queued for this device in the server and that the device should keep is receiver on as described in the Class A specification.

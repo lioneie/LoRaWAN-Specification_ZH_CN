@@ -1,0 +1,28 @@
+
+9 Principle of synchronous network initiated downlink (Class-B
+option)
+
+For a network to support end-devices of Class B, all gateways must synchronously broadcast a beacon providing a timing reference to the end-devices. Based on this timing reference the end-devices can periodically open receive windows, hereafter called “ping slots”, which can be used by the network infrastructure to initiate a downlink communication. A network initiated downlink using one of these ping slots is called a “ping”. The gateway chosen to initiate this downlink communication is selected by the Network Server based on the signal quality indicators of the last uplink of the end-device. For this reason, if an end-device moves and detects a change in the identity advertised in the received beacon, it must send an uplink to the Network Server so that the server can update the downlink routing path database.
+
+Before a device can operate in Class B mode, the following informations must be made available to the Network Server out-of-band.
+ The device’s default ping-slot periodicity
+ Default Ping-slot data rate
+ Default Ping-slot channel
+
+All end-devices start and join the network as end-devices of Class A. The end-device application can then decide to switch to Class B. This is done through the following process:
+
+ The end-device application requests the LoRaWAN layer to switch to Class B mode. The LoRaWAN layer in the end-device searches for a beacon and returns either a BEACON_LOCKED service primitive to the application if a network beacon was found and locked or a BEACON_NOT_FOUND service primitive. To accelerate the beacon discovery the LoRaWAN layer may use the “DeviceTimeReq” MAC command.
+
+Once in Class B mode, the MAC layer sets to 1 the Class B bit of the FCTRL field of every uplink frame transmitted. This bit signals to the server that the device has switched to Class B. The MAC layer will autonomously schedule a reception slot for each beacon and each ping slot. When the beacon reception is successful the end-device LoRaWAN layer forwards the beacon content to the application together with the measured radio signal strength. The end-device LoRaWAN layer takes into account the maximum possible clock drift in the scheduling of the beacon reception slot and ping slots. When a downlink is successfully demodulated during a ping slot, it is processed similarly to a downlink as described in the LoRaWAN Class A specification.
+
+A mobile end-device must periodically inform the Network Server of its location to update the downlink route. This is done by transmitting a normal (possibly empty) “unconfirmed” or “confirmed” uplink. The end-device LoRaWAN layer will appropriately set the Class B bit to 1 in the frame’s FCtrl field. Optimally this can be done more efficiently if the application detects that the node is moving by analyzing the beacon content. In that case the end-device must apply a random delay (as defined in Section 15.5) between the beacon reception and the uplink transmission to avoid systematic uplink collisions.
+
+At any time the Network Server may change the device’s ping-slot downlink frequency or data rate by sending a PingSlotChannelReq MAC command.
+
+The device may change the periodicity of its ping-slots at any time. To do so, it MUST temporarily stop class B operation (unset classB bit in its uplink frames) and send a PingSlotInfoReq to the Network Server. Once this command is acknowledged the device may restart classB operation with the new ping-slot periodicity
+
+ If no beacon has been received for a given period (as defined in Section 12.2), the synchronization with the network is lost. The MAC layer must inform the application layer that it has switched back to Class A. As a consequence the end-device LoRaWAN layer stops setting the Class B bit in all uplinks and this informs the Network Server that the end-device is no longer in Class B mode. The end-device application can try to switch back to Class B periodically. This will restart this process starting with a beacon search.
+
+The following diagram illustrates the concept of beacon reception slots and ping slots.
+
+In this example, given the beacon period is 128 s, the end-device also opens a ping reception slot every 32 s. Most of the time this ping slot is not used by the server and therefore the end-device reception window is closed as soon as the radio transceiver has assessed that no preamble is present on the radio channel. If a preamble is detected the radio transceiver will stay on until the downlink frame is demodulated. The MAC layer will then process the frame, check that its address field matches the end-device address and that the Message Integrity Check is valid before forwarding it to the application layer.

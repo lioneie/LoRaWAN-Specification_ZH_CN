@@ -118,12 +118,110 @@ In the two counters scheme the NFCntDown is managed by the Network Server, where
 
 Note: LoRaWAN v1.0 and earlier support only one FCntDown counter(shared across all ports) and the Network Server must take care to support this scheme for devices prior to LoRaWAN v1.1.
 
+Whenever an OTAA device successfully processes a Join-accept message, the frame counters on the end-device (FCntUp) and the frame counters on the network side(NFCntDown & AFCntDown) for that end-device are reset to 0.
+
+ABP devices have their Frame Counters initialized to 0 at fabrication. In ABP devices the frame counters MUST NEVER be reset during the device’s life time. If the end-device is susceptible of losing power during its life time (battery replacement for example), the frame counters SHALL persist during such event.
+
+Subsequently FCntUp is incremented with each uplink. NFCntDown is incremented with each downlink on FPort 0 or when the FPort field is missing. AFCntDown is incremented with each downlink on a port different than 0. At the receiver side, the corresponding counter is kept in sync with the value received provided the value received has been incremented compared to the current counter value and the message MIC field matches the MIC value computed locally using the appropriate network session key . The FCnt is not incremented in case of multiple transmissions of a confirmed or unconfirmed frame (see NbTrans parameter). The Network Server SHALL drop the application payload of the retransmitted frames and only forward a single instance to the application server.
+
+Frame counters are 32 bits wide, The FCnt field corresponds to the least-significant 16 bits of the 32-bits frame counter (i.e., FCntUp for data frames sent uplink and AFCntDown/NFCntDown for data frames sent downlink).
+
+The end-device SHALL NEVER reuse the same FCntUp value with the same application or network session keys, except for retransmission of the same confirmed or unconfirmed frame.
+
+The end-device SHALL never process any retransmission of the same downlink frame. Subsequent retransmissions SHALL be ignored without being processed.
+
+Note: This means that the device will only acknowledge once the reception of a downlink confirmed frame, similarly the device will only generate a single uplink following the reception of a frame with the FPending bit set.
+
+Note: Since the FCnt field carries only the least-significant 16 bits of the 32-bits frame counter, the server must infer the 16 most-significant bits of the frame counter from the observation of the traffic.
+
+4.3.1.6 Frame options (FOptsLen in FCtrl, FOpts)
+
+The frame-options length field (FOptsLen) in FCtrl byte denotes the actual length of the frame options field (FOpts) included in the frame.
+
+FOpts transport MAC commands of a maximum length of 15 octets that are piggybacked onto data frames; see Chapter 5 for a list of valid MAC commands.
+
+If FOptsLen is 0, the FOpts field is absent. If FOptsLen is different from 0, i.e. if MAC commands are present in the FOpts field, the port 0 cannot be used (FPort must be either not present or different from 0).
+
+MAC commands cannot be simultaneously present in the payload field and the frame options field. Should this occur, the device SHALL ignore the frame.
 
 
+If a frame header carries FOpts, FOpts MUST be encrypted before the message integrity code (MIC) is calculated.
+
+The encryption scheme used is based on the generic algorithm described in IEEE 802.15.4/2006 Annex B [IEEE802154] using AES with a key length of 128 bits.
+
+The key K used is the NwkSEncKey for FOpts field in both the uplink and downlink direction.
+
+The fields encrypted are: pld = FOpts
+
+For each message, the algorithm defines a single Block A:
+
+The direction field (Dir) is 0 for uplink frames and 1 for downlink frames.
+
+The block A is encrypted to get a block S:
+
+S = aes128_encrypt(K, A)
+
+Encryption and decryption of the FOpts is done by truncating (pld | pad16) xor S to the first len(pld) octets.
 
 
+4.3.1.7 Class B
+
+The Class B bit set to 1 in an uplink signals the Network Server that the device as switched to Class B mode and is now ready to receive scheduled downlink pings. Please refer to the Class B section of the document for the Class B specification.
+
+4.3.2 Port field (FPort)
+
+If the frame payload field is not empty, the port field MUST be present. If present, an FPort value of 0 indicates that the FRMPayload contains MAC commands only and any received frames with such an FPort shall be processed by the LoRaWAN implementation; see Chapter 5 for a list of valid MAC commands. FPort values 1..223 (0x01..0xDF) are application-specific and any received frames with such an FPort SHALL be made available to the application layer by the LoRaWAN implementation. FPort value 224 is dedicated to LoRaWAN MAC layer test protocol. LoRaWAN implementation SHALL discard any transmission request from the application layer where the FPort value is not in the 1..224 range.
+
+Note: The purpose of FPort value 224 is to provide a dedicated FPort to run MAC compliance test scenarios over-the-air on final versions of devices, without having to rely on specific test versions of devices for practical aspects. The test is not supposed to be simultaneous with live operations, but the MAC layer implementation of the device shall be exactly the one used for the normal application. The test protocol is normally encrypted using the AppSKey. This ensures that the Network Server cannot enable the device’s test mode without involving the device’s owner. If the test runs on a live network connected device, the way the test application on the network side learns the AppSKey is outside of the scope of the LoRaWAN specification. If the test runs using OTAA on a dedicated test bench (not a live network), the way the AppKey is communicated to the test bench, for secured JOIN process, is also outside of the scope of the specification.
+
+The test protocol, running at application layer, is defined outside of the LoRaWAN spec, as it is an application layer protocol.
+
+FPort values 225..255 (0xE1..0xFF) are reserved for future standardized application extensions.
+
+N is the number of octets of the application payload. The valid range for N is region specific and is defined in [PHY].
+N MUST be equal or smaller than:
+
+N = M - 1 - (length of FHDR in octets)
+
+where M is the maximum MAC payload length.
+
+4.3.3 MAC Frame Payload Encryption (FRMPayload)
+
+If a data frame carries a payload, FRMPayload MUST be encrypted before the message integrity code (MIC) is calculated.
+
+The encryption scheme used is based on the generic algorithm described in IEEE 802.15.4/2006 Annex B [IEEE802154] using AES with a key length of 128 bits.
+
+The key K used depends on the FPort of the data message:
+
+The fields encrypted are:
+
+pld = FRMPayload
+
+For each data message, the algorithm defines a sequence of Blocks Ai for i = 1..k with k = ceil(len(pld) / 16):
+
+Encryption and decryption of the payload is done by truncating
+(pld | pad16) xor S
+to the first len(pld) octets.
 
 
+4.4 Message Integrity Code (MIC)
+The message integrity code (MIC) is calculated over all the fields in the message.
+msg = MHDR | FHDR | FPort | FRMPayload
+whereby len(msg) denotes the length of the message in octets.
+4.4.1 Downlink frames
+The MIC of a downlink frame is calculated as follows [RFC4493]:
+cmac = aes128_cmac(SNwkSIntKey, B0 | msg)
+MIC = cmac[0..3]
 
+If the device is connected to a LoRaWAN1.1 Network Server and the ACK bit of the downlink frame is set, meaning this frame is acknowledging an uplink “confirmed” frame, then ConfFCnt is the frame counter value modulo 2^16 of the “confirmed” uplink frame that is being acknowledged. In all other cases ConfFCnt = 0x0000.
 
+Where:
 
+? TxDr is the data rate used for the transmission of the uplink
+
+? TxCh is the index of the channel used for the transmission.
+
+? If the ACK bit of the uplink frame is set, meaning this frame is acknowledging a downlink “confirmed” frame, then ConfFCnt is the frame counter value modulo 2^16 of the “confirmed” downlink frame that is being acknowledged. In all other cases ConfFCnt = 0x0000.
+
+If the device is connected to a LoRaWAN1.0 Network Server then:
+MIC = cmacF[0..3]
