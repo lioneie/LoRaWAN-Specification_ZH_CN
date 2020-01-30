@@ -1,0 +1,25 @@
+6 End-Device Activation
+
+To participate in a LoRaWAN network, each end-device has to be personalized and activated. 
+
+Activation of an end-device can be achieved in two ways, either via Over-The-Air Activation (OTAA) or via Activation By Personalization (ABP) 
+
+6.1 Data Stored in the End-device
+
+6.1.1 Before Activation
+
+6.1.1.1 JoinEUI
+
+The JoinEUI is a global application ID in IEEE EUI64 address space that uniquely identifies the Join Server that is able to assist in the processing of the Join procedure and the session keys derivation.
+
+For OTAA devices, the JoinEUI MUST be stored in the end-device before the Join procedure is executed. The JoinEUI is not required for ABP only end-devices
+
+6.1.1.2 DevEUI
+
+The DevEUI is a global end-device ID in IEEE EUI64 address space that uniquely identifies the end-device.
+
+DevEUI is the recommended unique device identifier by Network Server(s), whatever activation procedure is used, to identify a device roaming across networks.
+
+For OTAA devices, the DevEUI MUST be stored in the end-device before the Join procedure is executed. ABP devices do not need the DevEUI to be stored in the device itself, but it is RECOMMENDED to do so.
+
+Note: It is a recommended practice that the DevEUI should also be available on a device label, for device administration.

@@ -1,0 +1,14 @@
+5.12 DeviceTime commands (DeviceTimeReq, DeviceTimeAns)
+
+This MAC command is only available if the device is activated on a LoRaWAN1.1 compatible Network Server. LoRaWAN1.0 servers do not implement this MAC command.
+
+With the DeviceTimeReq command, an end-device may request from the network the current network date and time. The request has no payload.
+
+With the DeviceTimeAns command, the Network Server provides the network date and time to the end device. The time provided is the network time captured at the end of the uplink transmission. The command has a 5 bytes payload defined as follows:
+
+
+The time provided by the network MUST have a worst case accuracy of +/-100mSec.
+
+(*) The GPS epoch (i.e Sunday January the 6th 1980 at midnight) is used as origin. The “seconds” field is the number of seconds elapsed since the origin. This field is monotonically increasing by 1 every second. To convert this field to UTC time, the leap seconds must be taken into account.
+
+Example: Friday 12th of February 2016 at 14:24:31 UTC corresponds to 1139322288 seconds since GPS epoch. As of June 2017, the GPS time is 17seconds ahead of UTC time.

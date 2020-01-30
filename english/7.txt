@@ -1,0 +1,15 @@
+7 Retransmissions back-off
+
+Uplink frames that:
+
+ Require an acknowledgement or an answer by the network or an application server, and are retransmitted by the device if the acknowledgement or answer is not received.
+
+ And can be triggered by an external event causing synchronization across a large(>100) number of devices (power outage, radio jamming, network outage, earthquake…)
+
+can trigger a catastrophic, self-persisting, radio network overload situation.
+
+Note: An example of such uplink frame is typically the Join-request if the implementation of a group of end-devices decides to reset the MAC layer in the case of a network outage.
+
+The whole group of end-device will start broadcasting Join-request uplinks and will only stops when receiving a JoinResponse from the network.
+
+For those frame retransmissions, the interval between the end of the RX2 slot and the next uplink retransmission SHALL be random and follow a different sequence for every device (For example using a pseudo-random generator seeded with the device’s address) .The transmission duty-cycle of such message SHALL respect the local regulation and the following limits, whichever is more constraining:

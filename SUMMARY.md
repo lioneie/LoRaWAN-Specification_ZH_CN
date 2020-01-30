@@ -44,7 +44,8 @@
     * [5.8 终端发送参数(TxParamSetupReq, TxParamSetupAns)](chapter/5 MAC Commands.md#5.8)
 
 * [第6章 终端激活](chapter/6 End-Device Activation.md)
-    * [6.1 终端激活后的数据存储](chapter/6 End-Device Activation.md#6.1)
+    * [6.1 终端设备的数据存储](chapter/6 End-Device Activation.md#6.1)
+    * [6.1.1 激活前](chapter/6 End-Device Activation.md#6.1.1)
     * [6.2 空中激活 OTAA](chapter/6 End-Device Activation.md#6.2)
         * [6.2.1 终端 ID (DevEUI)](chapter/6 End-Device Activation.md#6.2.1)
         * [6.2.2 应用密钥(AppKey)](chapter/6 End-Device Activation.md#6.2.2)
